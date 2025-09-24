@@ -50,7 +50,7 @@ export default function AdminLayout() {
         options={{
           title: 'Internships',
           tabBarIcon: ({ size, color }) => (
-            <GraduationCap size={size} color={color} />
+            <Users size={size} color={color} />
           ),
         }}
       />

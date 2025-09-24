@@ -505,14 +505,6 @@ export default function PlacementsScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Placement Opportunities</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Bell size={20} color="#FFFFFF" />
-            {unreadNotifications > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>{unreadNotifications}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
           <View style={styles.headerStats}>
             <Text style={styles.headerStatsText}>{events.length} Available</Text>
           </View>

@@ -22,73 +22,8 @@ export default function StudentDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
-  useEffect(() => {
-    loadNotifications();
-    setupRealtimeSubscriptions();
-  }, [user]);
-
-  const loadNotifications = async () => {
-    try {
-      // Check if Supabase is configured
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-      if (!supabaseUrl || supabaseUrl.includes('your-project-id')) {
-        // Mock data for development
-        setNotifications([]);
-        setUnreadNotifications(0);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-        .limit(5);
-
-      if (error) {
-        console.error('Error loading notifications:', error);
-        setNotifications([]);
-        setUnreadNotifications(0);
-        return;
-      }
-      
-      const notificationData = data || [];
-      setNotifications(notificationData);
-      
-      // Count unread notifications
-      const unread = notificationData.filter(notification => 
-        !notification.read_by.includes(user?.id || '')
-      ).length;
-      setUnreadNotifications(unread);
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-    }
-  };
-
-  const setupRealtimeSubscriptions = () => {
-    if (!user?.id) return;
-
-    const notificationsChannel = supabase
-      .channel('dashboard-notifications-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-        },
-        () => {
-          loadNotifications();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      notificationsChannel.unsubscribe();
-    };
-  };
-
-  const handleLogout = async () => {
+  
+    const handleLogout = async () => {
     await signOut();
     router.replace('/(auth)/student-login');
   };
@@ -109,14 +44,6 @@ export default function StudentDashboard() {
           <Text style={styles.studentText}>{user?.name || 'Student'}</Text>
         </View>
         <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Bell size={20} color="#FFFFFF" />
-            {unreadNotifications > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>{unreadNotifications}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <LogOut size={20} color="#FFFFFF" />
           </TouchableOpacity>

@@ -46,19 +46,19 @@ export default function AdminStudentsScreen() {
         return;
       }
 
-      // Real DB fetch: get all rows with the class field
+      // Real DB fetch: get all rows with the class field from the students table
       const { data, error } = await supabase
-        .from('student_profiles')
+        .from('students')
         .select('class');
 
       if (error) throw error;
 
-      // Build counts grouped by class (normalize to uppercase)
+      // Build counts grouped by class (normalize to uppercase and trim spaces)
       const classCounts: Record<string, number> = {};
       (data || []).forEach((row: any) => {
-        const cls = row?.class;
+        let cls = row?.class;
         if (!cls) return;
-        const key = String(cls).toUpperCase();
+        const key = String(cls).trim().toUpperCase();
         classCounts[key] = (classCounts[key] || 0) + 1;
       });
 

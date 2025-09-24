@@ -242,14 +242,6 @@ export default function StudentInternshipsScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Internship Assignments</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Bell size={20} color="#FFFFFF" />
-            {unreadNotifications > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.notificationBadgeText}>{unreadNotifications}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
           <View style={styles.headerStats}>
             <Text style={styles.headerStatsText}>{STATIC_ASSIGNMENTS.length} Assignments</Text>
           </View>

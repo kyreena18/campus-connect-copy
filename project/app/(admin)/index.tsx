@@ -10,7 +10,7 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     await signOut();
-    router.replace('index.tsx');
+    router.replace('/(auth)/admin-login'); // Redirect to role selection page
   };
 
   return (

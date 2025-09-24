@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, User, Building, GraduationCap } from 'lucide-react-native';
+import { Chrome as Home, User, Building, GraduationCap, Home as House } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -68,11 +68,11 @@ export default function StudentLayout() {
       }}
     >
       <Tabs.Screen
-        name="profile"
+        name="index"
         options={{
-          title: 'Profile',
+          title: 'Home',
           tabBarIcon: ({ size, color }) => (
-            <User size={size} color={color} />
+            <House size={size} color={color} />
           ),
         }}
       />
@@ -93,6 +93,15 @@ export default function StudentLayout() {
           title: 'Internships',
           tabBarIcon: ({ size, color }) => (
             <GraduationCap size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ size, color }) => (
+            <User size={size} color={color} />
           ),
         }}
       />

@@ -158,9 +158,7 @@ export default function ClassStudentsView() {
           <ChevronLeft size={20} color="#FFFFFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Class: {String(classId)}</Text>
-        <TouchableOpacity style={styles.exportButton} onPress={exportToExcel}>
-          <Download size={16} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={{ width: 36 }} />
       </View>
 
       <View style={styles.classInfo}>
@@ -199,10 +197,6 @@ export default function ClassStudentsView() {
                         <Text style={styles.detailText}>Roll: {student.roll_no}</Text>
                       </View>
                     </View>
-                  </View>
-                  <View style={styles.creditsInfo}>
-                    <Text style={styles.creditsNumber}>{student.total_credits}</Text>
-                    <Text style={styles.creditsLabel}>Credits</Text>
                   </View>
                 </View>
               </View>
