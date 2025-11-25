@@ -20,6 +20,14 @@ interface StudentProfile {
   class: string;
 }
 
+interface StudentRecord {
+  id: string;
+  name?: string;
+  uid?: string;
+  roll_no?: string;
+  class?: string;
+}
+
 interface StudentSubmission {
   assignment_type: string;
   file_url: string;
@@ -33,6 +41,22 @@ interface StudentApproval {
   offer_letter_approved: boolean;
   credits_awarded: boolean;
 }
+
+const getRollSortKey = (rollNo?: string) => {
+  if (!rollNo) return { prefix: '', number: Number.MAX_SAFE_INTEGER, raw: '' };
+
+  const match = rollNo.match(/(^[A-Za-z]+)?(\d+)/);
+  if (match) {
+    const [, prefix = '', numberPart = ''] = match;
+    return {
+      prefix: prefix.toUpperCase(),
+      number: numberPart ? parseInt(numberPart, 10) : Number.MAX_SAFE_INTEGER,
+      raw: rollNo,
+    };
+  }
+
+  return { prefix: '', number: Number.MAX_SAFE_INTEGER, raw: rollNo };
+};
 
 export default function ClassView() {
   const router = useRouter();
@@ -79,96 +103,187 @@ export default function ClassView() {
         return;
       }
 
-      // Load student profiles
-      const { data: profs, error: profsError } = await supabase
+      const targetClass = String(classId);
+
+      // Load student profiles assigned to this class
+      const { data: profileRows, error: profsError } = await supabase
         .from('student_profiles')
         .select('id, student_id, full_name, uid, roll_no, class')
-        .eq('class', String(classId));
+        .eq('class', targetClass);
 
       if (profsError) {
         console.error('Error loading profiles:', profsError);
+      }
+
+      const profilesByClass = profileRows || [];
+      const profileMap = new Map((profilesByClass || []).map(profile => [profile.student_id, profile]));
+
+      // Load students from base table for class (fallback for missing profiles)
+      const studentsMap = new Map<string, StudentRecord>();
+      const { data: studentsByClass, error: studentsError } = await supabase
+        .from('students')
+        .select('id, name, uid, roll_no, class')
+        .eq('class', targetClass);
+
+      if (studentsError) {
+        console.warn('Error loading students by class:', studentsError.message);
+      } else {
+        (studentsByClass || []).forEach(student => {
+          if (student?.id) {
+            studentsMap.set(student.id, student);
+          }
+        });
+      }
+
+      // Ensure we fetch base student info for any profiles matched solely by profile.class
+      const profileStudentIds = profilesByClass.map(profile => profile.student_id).filter(Boolean);
+      const missingStudentIds = profileStudentIds.filter(studentId => studentId && !studentsMap.has(studentId));
+
+      if (missingStudentIds.length > 0) {
+        const { data: supplementalStudents, error: supplementalError } = await supabase
+          .from('students')
+          .select('id, name, uid, roll_no, class')
+          .in('id', missingStudentIds);
+
+        if (supplementalError) {
+          console.warn('Error loading supplemental student records:', supplementalError.message);
+        } else {
+          (supplementalStudents || []).forEach(student => {
+            if (student?.id) {
+              studentsMap.set(student.id, student);
+            }
+          });
+        }
+      }
+
+      const combinedStudentIds = Array.from(
+        new Set<string>([
+          ...studentsMap.keys(),
+          ...profileStudentIds,
+        ])
+      );
+
+      if (combinedStudentIds.length === 0) {
         setProfiles([]);
-        setLoading(false);
+        setSubmissions({});
+        setApprovals({});
         return;
       }
 
-      setProfiles(profs || []);
+      const mergedProfiles = combinedStudentIds
+        .map((studentId) => {
+          const profile = profileMap.get(studentId);
+          const student = studentsMap.get(studentId);
 
-      if (profs && profs.length > 0) {
-        const studentIds = profs.map(p => p.student_id);
+          return {
+            id: profile?.id || `student-${studentId}`,
+            student_id: studentId,
+            full_name: profile?.full_name || student?.name || 'Name not provided',
+            uid: profile?.uid || student?.uid || 'Not set',
+            roll_no: profile?.roll_no || student?.roll_no || 'Not set',
+            class: profile?.class || student?.class || targetClass,
+          };
+        })
+        .sort((a, b) => {
+          const keyA = getRollSortKey(a.roll_no);
+          const keyB = getRollSortKey(b.roll_no);
 
-        // Load submissions
-        const { data: subs, error: subsError } = await supabase
-          .from('student_internship_submissions')
-          .select('*')
-          .in('student_id', studentIds);
-
-        if (subsError) {
-          console.error('Error loading submissions:', subsError);
-          setSubmissions({});
-        } else {
-          const submissionsByStudent: { [studentId: string]: StudentSubmission[] } = {};
-          (subs || []).forEach(sub => {
-            if (!submissionsByStudent[sub.student_id]) {
-              submissionsByStudent[sub.student_id] = [];
-            }
-            submissionsByStudent[sub.student_id].push(sub);
-          });
-          setSubmissions(submissionsByStudent);
-
-          // Check for students who had approval but no longer have offer letter
-          const studentsWithOfferLetter = new Set();
-          (subs || []).forEach(sub => {
-            if (sub.assignment_type === 'offer_letter') {
-              studentsWithOfferLetter.add(sub.student_id);
-            }
-          });
-
-          // Reset approval for students without offer letter
-          for (const studentId of studentIds) {
-            if (!studentsWithOfferLetter.has(studentId)) {
-              await supabase
-                .from('student_internship_approvals')
-                .update({ offer_letter_approved: false })
-                .eq('student_id', studentId);
-            }
+          if (keyA.prefix !== keyB.prefix) {
+            return keyA.prefix.localeCompare(keyB.prefix);
           }
 
-          // Check for students who should have credits reset
-          const studentsEligibleForCredits = new Set();
-          (subs || []).forEach(sub => {
-            if (sub.assignment_type === 'completion_letter' && sub.submission_status === 'approved') {
-              studentsEligibleForCredits.add(sub.student_id);
-            }
-          });
+          if (keyA.number !== keyB.number) {
+            return keyA.number - keyB.number;
+          }
 
-          // Reset credits for students without approved completion letter
-          for (const studentId of studentIds) {
-            if (!studentsEligibleForCredits.has(studentId)) {
-              await supabase
-                .from('student_internship_approvals')
-                .update({ credits_awarded: false })
-                .eq('student_id', studentId);
-            }
+          if (keyA.raw && keyB.raw) {
+            return keyA.raw.localeCompare(keyB.raw);
+          }
+
+          return a.full_name.localeCompare(b.full_name);
+        });
+
+      setProfiles(mergedProfiles);
+
+      const studentIds = mergedProfiles.map(profile => profile.student_id);
+
+      if (studentIds.length === 0) {
+        setSubmissions({});
+        setApprovals({});
+        return;
+      }
+
+      // Load submissions
+      const { data: subs, error: subsError } = await supabase
+        .from('student_internship_submissions')
+        .select('*')
+        .in('student_id', studentIds);
+
+      if (subsError) {
+        console.error('Error loading submissions:', subsError);
+        setSubmissions({});
+      } else {
+        const submissionsByStudent: { [studentId: string]: StudentSubmission[] } = {};
+        (subs || []).forEach(sub => {
+          if (!submissionsByStudent[sub.student_id]) {
+            submissionsByStudent[sub.student_id] = [];
+          }
+          submissionsByStudent[sub.student_id].push(sub);
+        });
+        setSubmissions(submissionsByStudent);
+
+        // Check for students who had approval but no longer have offer letter
+        const studentsWithOfferLetter = new Set();
+        (subs || []).forEach(sub => {
+          if (sub.assignment_type === 'offer_letter') {
+            studentsWithOfferLetter.add(sub.student_id);
+          }
+        });
+
+        // Reset approval for students without offer letter
+        for (const studentId of studentIds) {
+          if (!studentsWithOfferLetter.has(studentId)) {
+            await supabase
+              .from('student_internship_approvals')
+              .update({ offer_letter_approved: false })
+              .eq('student_id', studentId);
           }
         }
 
-        // Load approvals
-        const { data: apps, error: appsError } = await supabase
-          .from('student_internship_approvals')
-          .select('*')
-          .in('student_id', studentIds);
+        // Check for students who should have credits reset
+        const studentsEligibleForCredits = new Set();
+        (subs || []).forEach(sub => {
+          if (sub.assignment_type === 'completion_letter' && sub.submission_status === 'approved') {
+            studentsEligibleForCredits.add(sub.student_id);
+          }
+        });
 
-        if (appsError) {
-          console.error('Error loading approvals:', appsError);
-          setApprovals({});
-        } else {
-          const approvalsByStudent: { [studentId: string]: StudentApproval } = {};
-          (apps || []).forEach(app => {
-            approvalsByStudent[app.student_id] = app;
-          });
-          setApprovals(approvalsByStudent);
+        // Reset credits for students without approved completion letter
+        for (const studentId of studentIds) {
+          if (!studentsEligibleForCredits.has(studentId)) {
+            await supabase
+              .from('student_internship_approvals')
+              .update({ credits_awarded: false })
+              .eq('student_id', studentId);
+          }
         }
+      }
+
+      // Load approvals
+      const { data: apps, error: appsError } = await supabase
+        .from('student_internship_approvals')
+        .select('*')
+        .in('student_id', studentIds);
+
+      if (appsError) {
+        console.error('Error loading approvals:', appsError);
+        setApprovals({});
+      } else {
+        const approvalsByStudent: { [studentId: string]: StudentApproval } = {};
+        (apps || []).forEach(app => {
+          approvalsByStudent[app.student_id] = app;
+        });
+        setApprovals(approvalsByStudent);
       }
     } catch (err) {
       console.error('Error loading class view:', err);
