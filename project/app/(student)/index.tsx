@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { LogOut, Speaker, Calendar, Bell } from 'lucide-react-native';
+import { LogOut, Speaker, Calendar, Bell, Route } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/utils';
@@ -29,8 +29,8 @@ export default function StudentDashboard() {
   };
 
   const quickStats = [
-    { title: 'Placement Announcements', value: '2', icon: Speaker, color: '#007AFF' },
-    { title: 'Internships', value: '3', icon: Calendar, color: '#34C759' },
+    { title: 'Placement Announcements', value: '2', icon: Speaker, color: '#007AFF', route: '/placements' },
+    { title: 'Internships', value: '6', icon: Calendar, color: '#34C759', route: '/internships' },
   ];
 
   return (
@@ -54,29 +54,6 @@ export default function StudentDashboard() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Notifications Section */}
-        {notifications.length > 0 && (
-          <View style={styles.notificationsSection}>
-            <Text style={styles.sectionTitle}>Recent Updates</Text>
-            <View style={styles.notificationsList}>
-              {notifications.slice(0, 3).map((notification) => (
-                <View key={notification.id} style={styles.notificationCard}>
-                  <View style={styles.notificationHeader}>
-                    <Text style={styles.notificationTitle}>{notification.title}</Text>
-                    <View style={[styles.notificationTypeBadge, { backgroundColor: notification.type === 'placement' ? '#007AFF' : '#34C759' }]}>
-                      <Text style={styles.notificationTypeText}>{notification.type.toUpperCase()}</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.notificationMessage}>{notification.message}</Text>
-                  <Text style={styles.notificationDate}>
-                    {formatDate(notification.created_at)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
         {/* Quick Stats Section */}
         <View style={styles.quickStatsSection}>
           <Text style={styles.sectionTitle}>Quick Stats</Text>
