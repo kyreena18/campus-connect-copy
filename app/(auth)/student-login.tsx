@@ -2,32 +2,32 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Mail, Hash, UserPlus } from 'lucide-react-native';
+import { ArrowLeft, Hash, Lock, UserPlus } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function StudentLogin() {
   const [uid, setUid] = useState('');
-  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
   const { signInStudent } = useAuth();
 
   const handleLogin = async () => {
-    if (!uid || !email) {
-      setError('Please enter both UID and email');
+    if (!uid || !password) {
+      setError('Please enter both UID and password');
       return;
     }
 
-    if (uid.length < 3 || !email.includes('@')) {
-      setError('Please check your UID and email format');
+    if (uid.length < 3 || password.length < 4) {
+      setError('Please check your UID and password');
       return;
     }
 
     setLoading(true);
     setError('');
 
-    const result = await signInStudent(uid, email);
+    const result = await signInStudent(uid, password);
     
     if (result.success) {
       router.replace('/(student)');
@@ -53,7 +53,7 @@ export default function StudentLogin() {
       <View style={styles.content}>
         <View style={styles.loginCard}>
           <Text style={styles.title}>Student Portal</Text>
-          <Text style={styles.subtitle}>Login with your college credentials</Text>
+          <Text style={styles.subtitle}>Login with your UID and password</Text>
 
           <View style={styles.inputContainer}>
             {error ? (
@@ -75,13 +75,13 @@ export default function StudentLogin() {
             </View>
 
             <View style={styles.inputWrapper}>
-              <Mail size={20} color="#6B6B6B" style={styles.inputIcon} />
+              <Lock size={20} color="#6B6B6B" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="College Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
                 autoCapitalize="none"
                 placeholderTextColor="#6B6B6B"
               />
@@ -89,9 +89,9 @@ export default function StudentLogin() {
           </View>
 
           <TouchableOpacity
-            style={[styles.loginButton, (!uid || !email || loading) && styles.disabledButton]}
+            style={[styles.loginButton, (!uid || !password || loading) && styles.disabledButton]}
             onPress={handleLogin}
-            disabled={!uid || !email || loading}
+            disabled={!uid || !password || loading}
           >
             <Text style={styles.loginButtonText}>
               {loading ? 'Logging in...' : 'Login to Portal'}

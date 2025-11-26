@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, User, Hash, Mail, FileText } from 'lucide-react-native';
+import { ArrowLeft, User, Hash, Mail, FileText, Lock } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function StudentRegister() {
@@ -10,13 +10,14 @@ export default function StudentRegister() {
   const [uid, setUid] = useState('');
   const [email, setEmail] = useState('');
   const [rollNo, setRollNo] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
   const { registerStudent } = useAuth();
 
   const handleRegister = async () => {
-    if (!name || !uid || !email || !rollNo) {
+    if (!name || !uid || !email || !rollNo || !password) {
       setError('Please fill in all fields');
       return;
     }
@@ -34,6 +35,7 @@ export default function StudentRegister() {
       uid,
       email,
       rollNo,
+      password,
     });
     
     if (result.success) {
@@ -45,7 +47,7 @@ export default function StudentRegister() {
     setLoading(false);
   };
 
-  const isFormValid = name && uid && email && rollNo;
+  const isFormValid = name && uid && email && rollNo && password;
 
   return (
     <LinearGradient
@@ -116,6 +118,19 @@ export default function StudentRegister() {
                 value={rollNo}
                 onChangeText={setRollNo}
                 autoCapitalize="characters"
+                placeholderTextColor="#6B6B6B"
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Lock size={20} color="#6B6B6B" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Login Password (dummy)"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
                 placeholderTextColor="#6B6B6B"
               />
             </View>

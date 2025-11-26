@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { User, Hash, FileText, GraduationCap, Building, Upload, Save, LogOut, Mail } from 'lucide-react-native';
+import { User, Hash, FileText, GraduationCap, Building, Upload, Save, LogOut, Mail, Lock } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, isSupabaseConfigured, uploadFile, getPublicUrl } from '@/lib/supabase';
 import * as DocumentPicker from 'expo-document-picker';
@@ -13,6 +13,7 @@ interface StudentProfile {
   full_name: string;
   uid: string;
   roll_no: string;
+  email?: string;
   class: string;
   stream_12th: string;
   resume_url?: string;
@@ -27,6 +28,7 @@ export default function StudentProfile() {
     full_name: '',
     uid: '',
     roll_no: '',
+    email: '',
     class: 'SYIT',
     stream_12th: 'Science',
     resume_url: '',
@@ -37,6 +39,9 @@ export default function StudentProfile() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [realtimeChannel, setRealtimeChannel] = useState<RealtimeChannel | null>(null);
+  const [email, setEmail] = useState(user?.email || '');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -89,7 +94,9 @@ export default function StudentProfile() {
           full_name: user.name || '',
           uid: user.uid || '',
           roll_no: user.rollNo || '',
+          email: user.email || '',
         }));
+        setEmail(user.email || '');
         setLoading(false);
         return;
       }
@@ -108,6 +115,24 @@ export default function StudentProfile() {
           full_name: user.name || '',
           uid: user.uid || '',
           roll_no: user.rollNo || '',
+          email: user.email || '',
+        }));
+      }
+
+      // Also load email & password from students table
+      const { data: studentData } = await supabase!
+        .from('students')
+        .select('email, login_password')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (studentData) {
+        setEmail(studentData.email || '');
+        // Prefill password so student can view/change it
+        setPassword(studentData.login_password || '');
+        setProfile(prev => ({
+          ...prev,
+          email: studentData.email || prev.email,
         }));
       }
     } catch (error) {
@@ -123,8 +148,8 @@ export default function StudentProfile() {
       return;
     }
 
-    if (!profile.full_name || !profile.uid || !profile.roll_no) {
-      setError('Please fill in all required fields');
+    if (!profile.full_name || !profile.uid || !profile.roll_no || !email) {
+      setError('Please fill in all required fields (including email)');
       return;
     }
 
@@ -145,7 +170,7 @@ export default function StudentProfile() {
         full_name: profile.full_name,
         uid: profile.uid,
         roll_no: profile.roll_no,
-        email: user.email, // Ensure email is included
+        email,
         class: profile.class,
         stream_12th: profile.stream_12th,
         resume_url: profile.resume_url,
@@ -154,10 +179,15 @@ export default function StudentProfile() {
         updated_at: new Date().toISOString(),
       };
 
-      // Also update the class in the students table
+      // Also update email, password, and class in the students table
       const { error: studentUpdateError } = await supabase!
         .from('students')
-        .update({ class: profile.class })
+        .update({
+          class: profile.class,
+          email,
+          // Only update password if it is not empty
+          ...(password ? { login_password: password } : {}),
+        })
         .eq('id', user.id);
 
       if (studentUpdateError) {
@@ -311,6 +341,46 @@ export default function StudentProfile() {
                   placeholderTextColor="#6B6B6B"
                 />
               </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email *</Text>
+              <View style={styles.inputWrapper}>
+                <Mail size={20} color="#6B6B6B" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your email"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  placeholderTextColor="#6B6B6B"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Login Password</Text>
+              <View style={styles.inputWrapper}>
+                <Lock size={20} color="#6B6B6B" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter new password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  placeholderTextColor="#6B6B6B"
+                />
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowPassword(prev => !prev)}
+                style={{ marginTop: 8, alignSelf: 'flex-end' }}
+              >
+                <Text style={{ color: '#007AFF', fontWeight: '500' }}>
+                  {showPassword ? 'Hide Password' : 'Show Password'}
+                </Text>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.inputGroup}>

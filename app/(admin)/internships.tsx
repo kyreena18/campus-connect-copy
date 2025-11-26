@@ -43,35 +43,17 @@ export default function AdminInternshipsScreen() {
         return;
       }
 
-      // Real Supabase query - prefer students table but fall back to profiles
-      let classRows: { class: string | null }[] = [];
-
-      const { data: studentClassData, error: studentClassError } = await supabase
-        .from('students')
+      // Real Supabase query
+      const { data, error } = await supabase
+        .from('student_profiles')
         .select('class')
         .not('class', 'is', null);
 
-      if (!studentClassError && studentClassData) {
-        classRows = studentClassData;
-      } else {
-        console.warn(
-          'Failed to load class data from students table, falling back to student_profiles:',
-          studentClassError?.message
-        );
-
-        const { data: profileClassData, error: profileClassError } = await supabase
-          .from('student_profiles')
-          .select('class')
-          .not('class', 'is', null);
-
-        if (profileClassError) throw profileClassError;
-        classRows = profileClassData || [];
-      }
+      if (error) throw error;
 
       // Count students by class
-      const classCounts = (classRows || []).reduce((acc: { [key: string]: number }, student) => {
+      const classCounts = (data || []).reduce((acc: { [key: string]: number }, student) => {
         const className = student.class;
-        if (!className) return acc;
         acc[className] = (acc[className] || 0) + 1;
         return acc;
       }, {});

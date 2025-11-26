@@ -51,6 +51,8 @@ interface PlacementApplication {
       full_name: string;
       class: string;
       resume_url?: string;
+      marksheet_10th_url?: string;
+      marksheet_12th_url?: string;
     } | null;
   };
 }
@@ -109,7 +111,9 @@ export default function AdminPlacementsScreen() {
             student_profiles (
               full_name,
               class,
-              resume_url
+              resume_url,
+              marksheet_10th_url,
+              marksheet_12th_url
             )
           ),
           student_requirement_submissions (
@@ -374,6 +378,12 @@ export default function AdminPlacementsScreen() {
         'Resume Link': application.students?.student_profiles?.resume_url 
           ? `=HYPERLINK("${application.students.student_profiles.resume_url}","View Resume")`
           : 'Not uploaded',
+        '10th Marksheet Link': application.students?.student_profiles?.marksheet_10th_url
+          ? `=HYPERLINK("${application.students.student_profiles.marksheet_10th_url}","View 10th Marksheet")`
+          : 'Not uploaded',
+        '12th Marksheet Link': application.students?.student_profiles?.marksheet_12th_url
+          ? `=HYPERLINK("${application.students.student_profiles.marksheet_12th_url}","View 12th Marksheet")`
+          : 'Not uploaded',
         'Offer Letter Link': application.offer_letter_url 
           ? `=HYPERLINK("${application.offer_letter_url}","View Offer Letter")`
           : (application.application_status === 'accepted' ? 'Not uploaded' : 'Not accepted'),
@@ -412,6 +422,8 @@ export default function AdminPlacementsScreen() {
         { wch: 12 },  // Applied Date
         { wch: 15 },  // Admin Notes
         { wch: 15 },  // Resume Link
+        { wch: 18 },  // 10th Marksheet Link
+        { wch: 18 },  // 12th Marksheet Link
         { wch: 18 },  // Offer Letter Link
         // Add column widths for additional requirement links
         ...Array(additionalRequirementTypes.length).fill({ wch: 18 }),
