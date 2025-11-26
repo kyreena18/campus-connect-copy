@@ -18,12 +18,13 @@ interface AuthContextType {
   userType: UserType;
   loading: boolean;
   signInAdmin: (code: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signInStudent: (uid: string, email: string) => Promise<{ success: boolean; error?: string }>;
+  signInStudent: (uid: string, password: string) => Promise<{ success: boolean; error?: string }>;
   registerStudent: (data: {
     name: string;
     uid: string;
     email: string;
     rollNo: string;
+    password: string;
   }) => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
 }
@@ -96,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signInStudent = async (uid: string, email: string) => {
+  const signInStudent = async (uid: string, password: string) => {
     try {
       setLoading(true);
 
@@ -108,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase
         .from('students')
         .select('*')
-        .or(`uid.eq.${uid},email.eq.${email}`)
+        .eq('uid', uid)
         .maybeSingle();
 
       if (error) {
@@ -120,14 +121,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!data) {
         console.error('Login error: No student found with provided credentials');
         setLoading(false);
-        return { success: false, error: 'No student found with these credentials. Please register first or check your UID and email.' };
+        return { success: false, error: 'No student found with this UID. Please register first or check your UID.' };
       }
 
-      // Verify both UID and email match exactly
-      if (data.uid !== uid || data.email !== email) {
+      // Verify UID and password match
+      if (data.uid !== uid || data.login_password !== password) {
         console.error('Login error: Credentials do not match exactly');
         setLoading(false);
-        return { success: false, error: 'Invalid credentials. Please check your UID and email.' };
+        return { success: false, error: 'Invalid credentials. Please check your UID and password.' };
       }
 
       const studentUser: User = {
@@ -155,6 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     uid: string;
     email: string;
     rollNo: string;
+    password: string;
   }) => {
     try {
       setLoading(true);
@@ -182,6 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           uid: data.uid,
           email: data.email,
           roll_no: data.rollNo,
+          login_password: data.password,
           class: 'SYIT', // Default class
           total_credits: 0,
         })

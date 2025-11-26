@@ -102,6 +102,7 @@ export type Database = {
           name: string;
           uid: string;
           email: string;
+          login_password: string;
           roll_no: string;
           department: string;
           year: string;
@@ -115,6 +116,7 @@ export type Database = {
           name: string;
           uid: string;
           email: string;
+          login_password: string;
           roll_no: string;
           department?: string;
           year?: string;
@@ -128,6 +130,7 @@ export type Database = {
           name?: string;
           uid?: string;
           email?: string;
+          login_password?: string;
           roll_no?: string;
           department?: string;
           year?: string;
